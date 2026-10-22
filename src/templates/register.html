@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký | Password Security Lab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="card">
+        <p class="eyebrow">Password Security Lab</p>
+        <h1>Đăng ký tài khoản</h1>
+        <p class="subtitle">Tạo tài khoản để đăng nhập.</p>
+
+        {% if message %}
+            <p class="message" role="alert">{{ message }}</p>
+        {% endif %}
+
+        <form action="{{ url_for('register') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <div class="field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" value="{{ username }}" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" autocomplete="new-password" required>
+            </div>
+            <div class="field">
+                <label for="confirm_password">Confirm password</label>
+                <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+        <p class="form-link"><a href="{{ url_for('login') }}">Quay về Login</a></p>
+    </main>
+</body>
+</html>

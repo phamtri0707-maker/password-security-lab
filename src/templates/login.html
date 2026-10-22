@@ -3,23 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Đăng nhập | Password Security Lab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Đăng nhập</h1>
-    <p>Biểu mẫu hiện chỉ để hiển thị, chưa xử lý đăng nhập.</p>
+    <main class="card">
+        <p class="eyebrow">Password Security Lab</p>
+        <h1>Đăng nhập</h1>
+        <p class="subtitle">Chào mừng bạn trở lại.</p>
 
-    <form action="/" method="post">
-        <p>
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" autocomplete="username">
-        </p>
-        <p>
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" autocomplete="current-password">
-        </p>
-        <!-- Chưa gửi biểu mẫu khi chưa có phần xử lý đăng nhập. -->
-        <button type="button">Login</button>
-    </form>
+        {% if message %}
+            <p class="message" role="alert">{{ message }}</p>
+        {% endif %}
+
+        <form action="{{ url_for('login') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <div class="field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        <p class="form-link"><a href="{{ url_for('register') }}">Đăng ký tài khoản</a></p>
+    </main>
 </body>
 </html>

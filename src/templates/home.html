@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đã đăng nhập | Password Security Lab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="card">
+        <p class="eyebrow">Password Security Lab</p>
+        <p class="success-badge">Đã xác thực</p>
+        <h1>Đăng nhập thành công</h1>
+        <p class="subtitle">Xin chào, <strong>{{ username }}</strong>.</p>
+        <form action="{{ url_for('logout') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <button type="submit">Logout</button>
+        </form>
+    </main>
+</body>
+</html>
