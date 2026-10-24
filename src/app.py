@@ -3,11 +3,13 @@ import json
 import os
 import secrets
 import sqlite3
+import ssl
 from pathlib import Path
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 from flask import Flask, abort, redirect, render_template, request, session, url_for
+from werkzeug.serving import WSGIRequestHandler
 
 
 app = Flask(__name__)
@@ -24,7 +26,11 @@ if not PEPPER:
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 if not app.secret_key:
     raise RuntimeError("Set FLASK_SECRET_KEY before starting the app.")
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 
 # Username không tồn tại vẫn đi qua verify để giảm chênh lệch thời gian xử lý.
 DUMMY_HASH = PASSWORD_HASHER.hash(secrets.token_urlsafe(32) + PEPPER)
@@ -139,5 +145,29 @@ def logout():
     return redirect(url_for("login"))
 
 
+class LocalHTTPSContext(ssl.SSLContext):
+    def wrap_socket(self, *args, **kwargs):
+        # Handshake trong worker; kết nối mở sẵn không được chặn vòng accept.
+        kwargs["do_handshake_on_connect"] = False
+        return super().wrap_socket(*args, **kwargs)
+
+
+class LocalHTTPSRequestHandler(WSGIRequestHandler):
+    # Đóng kết nối không gửi handshake/request thay vì giữ worker vô hạn.
+    timeout = 10
+
+
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000)
+    cert_file = os.environ.get("TLS_CERT_FILE")
+    key_file = os.environ.get("TLS_KEY_FILE")
+    if not cert_file or not key_file:
+        raise RuntimeError("Set TLS_CERT_FILE and TLS_KEY_FILE before starting HTTPS.")
+    tls_context = LocalHTTPSContext(ssl.PROTOCOL_TLS_SERVER)
+    tls_context.load_cert_chain(cert_file, key_file)
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        ssl_context=tls_context,
+        request_handler=LocalHTTPSRequestHandler,
+        threaded=True,
+    )

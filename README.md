@@ -1,6 +1,8 @@
 # Password Security Lab — Blue Team
 
-Ứng dụng đăng ký/đăng nhập local bằng Flask, SQLite và Argon2id. Giao diện dùng HTML/CSS thuần.
+Ứng dụng đăng ký/đăng nhập local bằng Flask, SQLite và Argon2id. Giao diện dùng HTML/CSS thuần; Flask development server phục vụ qua HTTPS tại **https://127.0.0.1:5000/**.
+
+Xem [hướng dẫn HTTPS/TLS local](docs/https-local.md) để tạo certificate và private key ngoài repository, chạy app, kiểm tra trình duyệt và hiểu vai trò của TLS so với Argon2id.
 
 ## Luồng hoạt động
 
@@ -18,7 +20,7 @@ Session là trạng thái giúp app nhận biết người dùng giữa các l�
 
 Username không tồn tại và password sai đều nhận cùng thông báo: **Username hoặc password không đúng.** Với username không tồn tại, app vẫn verify một hash tạm để giảm khác biệt thời gian xử lý.
 
-Form có CSRF token: một mã ngẫu nhiên trong phiên và trong ô ẩn của form. App kiểm tra mã này trước khi nhận POST để chống yêu cầu giả mạo từ form khác. Cookie có `HttpOnly`, `SameSite=Lax`; các trang không được lưu cache.
+Form có CSRF token: một mã ngẫu nhiên trong phiên và trong ô ẩn của form. App kiểm tra mã này trước khi nhận POST để chống yêu cầu giả mạo từ form khác. Cookie có `Secure`, `HttpOnly`, `SameSite=Lax`; các trang không được lưu cache.
 
 ## Chạy từ đầu trên PowerShell
 
@@ -40,16 +42,28 @@ $env:PASSWORD_PEPPER = & $pythonExe -c "import secrets; print(secrets.token_hex(
 
 Nếu đã có tài khoản, cần cấp lại đúng pepper đã dùng để tạo tài khoản đó; không sinh pepper mới cho hash cũ. Pepper không nằm trong database nên không thể khôi phục từ database. App không tự đọc file `.env`.
 
-Tạo khóa ký session riêng, sau đó chạy web trong cùng cửa sổ PowerShell:
+Giữ nguyên `FLASK_SECRET_KEY` hiện tại. Chỉ tạo khóa ký session nếu đây là lần thiết lập đầu tiên:
 
 ```powershell
 $env:FLASK_SECRET_KEY = & $pythonExe -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Tạo certificate/private key một lần theo [bước 2 của hướng dẫn HTTPS](docs/https-local.md#2-tạo-certificate-và-private-key-một-lần). Hai file nằm trong thư mục tài khoản Windows, ngoài repository. Sau đó, trong cùng cửa sổ PowerShell đã có pepper và khóa session:
+
+```powershell
+$tlsDir = Join-Path $env:LOCALAPPDATA "SecureLoginLab\tls"
+$env:TLS_CERT_FILE = Join-Path $tlsDir "local.crt"
+$env:TLS_KEY_FILE = Join-Path $tlsDir "local.key"
 & $pythonExe src\app.py
 ```
 
-Mở **http://127.0.0.1:5000/**, bấm **Đăng ký tài khoản**, chọn username giả như `student_web` rồi nhập password và confirm password giống nhau. Đăng ký thành công sẽ về login. Đăng nhập bằng tài khoản vừa tạo, thử Logout rồi truy cập lại `/home`; app phải đưa về login. Nếu đang đăng nhập, bấm Logout trước khi thử tạo tài khoản khác. Nhấn `Ctrl+C` trong terminal để dừng web; sau khi sửa code cần chạy lại app để nhận thay đổi.
+Mở **https://127.0.0.1:5000/**. Browser sẽ cảnh báo vì certificate tự ký chưa được tin cậy; chỉ tiếp tục với certificate do chính bạn tạo cho lab này. Bấm **Đăng ký tài khoản**, chọn username giả như `student_web` rồi nhập password và confirm password giống nhau. Đăng ký thành công sẽ về login. Đăng nhập bằng tài khoản vừa tạo, thử Logout rồi truy cập lại `/home`; app phải đưa về login. Nếu đang đăng nhập, bấm Logout trước khi thử tạo tài khoản khác. Nhấn `Ctrl+C` trong terminal để dừng web; sau khi sửa code cần chạy lại app để nhận thay đổi.
 
-`PASSWORD_PEPPER` và `FLASK_SECRET_KEY` trong các lệnh trên chỉ tồn tại trong cửa sổ PowerShell hiện tại. Giữ pepper ở nơi riêng an toàn để cấp lại khi cần; không đưa giá trị thật vào code hoặc Git. Đổi khóa ký session sẽ làm các session cũ hết hiệu lực; đổi pepper làm mật khẩu đã băm bằng pepper cũ không còn khớp.
+Chạy bằng `python src\app.py` như trên để áp dụng cấu hình TLS; lệnh `flask run` thông thường không chạy khối `__main__` này. Cổng 5000 phục vụ HTTPS, không đồng thời phục vụ HTTP hay chuyển hướng HTTP sang HTTPS.
+
+Server xử lý TLS handshake trong từng worker, để một kết nối mở sẵn chưa gửi handshake không làm các trang khác tải mãi. Kết nối chờ handshake/request có timeout 10 giây. Sau khi cập nhật code, dừng server cũ bằng `Ctrl+C` rồi chạy lại lệnh trên.
+
+Các biến môi trường trong các lệnh trên chỉ tồn tại trong cửa sổ PowerShell hiện tại. Giữ pepper và khóa session ở nơi riêng an toàn để cấp lại khi cần; không đưa giá trị thật hoặc private key vào code hay Git. Đổi khóa ký session sẽ làm các session cũ hết hiệu lực; đổi pepper làm mật khẩu đã băm bằng pepper cũ không còn khớp. `TLS_CERT_FILE` và `TLS_KEY_FILE` chỉ chứa đường dẫn tới hai file TLS, không chứa nội dung certificate/private key.
 
 ## Demo Register → xem hash → Login
 

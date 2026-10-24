@@ -3,32 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập | Password Security Lab</title>
+    <meta name="color-scheme" content="dark">
+    <title>Đăng nhập | Secure Login Lab</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <main class="card">
-        <p class="eyebrow">Password Security Lab</p>
-        <h1>Đăng nhập</h1>
-        <p class="subtitle">Chào mừng bạn trở lại.</p>
-
-        {% if message %}
-            <p class="message" role="alert">{{ message }}</p>
-        {% endif %}
-
-        <form action="{{ url_for('login') }}" method="post">
-            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-            <div class="field">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" autocomplete="username" required>
+    <div class="page-shell">
+        <header class="brand">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4.5 6v5.5c0 4.3 3 7.7 7.5 9.5 4.5-1.8 7.5-5.2 7.5-9.5V6L12 3Z"/><path d="m8.5 12 2.3 2.3 4.7-4.7"/></svg>
+            </span>
+            <div>
+                <p class="brand-name">Secure Login Lab</p>
+                <p class="brand-caption">{% if request.is_secure %}Protected with HTTPS and Argon2id{% else %}Argon2id password hashing · HTTPS required{% endif %}</p>
             </div>
-            <div class="field">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" autocomplete="current-password" required>
-            </div>
-            <button type="submit">Login</button>
-        </form>
-        <p class="form-link"><a href="{{ url_for('register') }}">Đăng ký tài khoản</a></p>
-    </main>
+        </header>
+
+        <main class="card">
+            <p class="eyebrow">Truy cập tài khoản</p>
+            <h1>Đăng nhập</h1>
+            <p class="subtitle">Chào mừng bạn trở lại. Nhập thông tin để tiếp tục.</p>
+
+            {% if message %}
+                <p class="message" role="alert"><strong>Không thể đăng nhập.</strong> {{ message }}</p>
+            {% endif %}
+
+            <form action="{{ url_for('login') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+                <button type="submit">Login <span aria-hidden="true">→</span></button>
+            </form>
+            <p class="form-link">Chưa có tài khoản? <a href="{{ url_for('register') }}">Đăng ký</a></p>
+        </main>
+
+        <footer class="page-footer"><span class="status-dot" aria-hidden="true"></span>Môi trường thực hành cục bộ</footer>
+    </div>
 </body>
 </html>

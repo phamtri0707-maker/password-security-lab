@@ -44,6 +44,9 @@ class LoginTests(unittest.TestCase):
             patch.dict(app_module.app.config, {
                 "TESTING": True,
                 "SECRET_KEY": self.secret_key,
+                # Flask dùng base URL này cho mọi request và session_transaction.
+                "SERVER_NAME": "127.0.0.1",
+                "PREFERRED_URL_SCHEME": "https",
             }),
             patch.object(demo_module, "getpass", return_value=self.password),
         ]
@@ -149,6 +152,7 @@ class LoginTests(unittest.TestCase):
         self.assertIn('name="csrf_token"', response.get_data(as_text=True))
         self.assertIn("/static/style.css", response.get_data(as_text=True))
         self.assertNotIn("Đăng nhập thành công.", response.get_data(as_text=True))
+        self.assertIn("Secure", response.headers["Set-Cookie"])
         self.assertIn("HttpOnly", response.headers["Set-Cookie"])
         self.assertIn("SameSite=Lax", response.headers["Set-Cookie"])
 

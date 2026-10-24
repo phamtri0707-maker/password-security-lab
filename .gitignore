@@ -6,3 +6,13 @@ __pycache__/
 .env
 .env.*
 
+# Local TLS material must stay outside the repository.
+certs/
+tls/
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+

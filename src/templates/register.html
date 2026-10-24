@@ -3,36 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng ký | Password Security Lab</title>
+    <meta name="color-scheme" content="dark">
+    <title>Đăng ký | Secure Login Lab</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <main class="card">
-        <p class="eyebrow">Password Security Lab</p>
-        <h1>Đăng ký tài khoản</h1>
-        <p class="subtitle">Tạo tài khoản để đăng nhập.</p>
+    <div class="page-shell">
+        <header class="brand">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4.5 6v5.5c0 4.3 3 7.7 7.5 9.5 4.5-1.8 7.5-5.2 7.5-9.5V6L12 3Z"/><path d="m8.5 12 2.3 2.3 4.7-4.7"/></svg>
+            </span>
+            <div>
+                <p class="brand-name">Secure Login Lab</p>
+                <p class="brand-caption">{% if request.is_secure %}Protected with HTTPS and Argon2id{% else %}Argon2id password hashing · HTTPS required{% endif %}</p>
+            </div>
+        </header>
 
-        {% if message %}
-            <p class="message" role="alert">{{ message }}</p>
-        {% endif %}
+        <main class="card">
+            <p class="eyebrow">Bắt đầu với tài khoản mới</p>
+            <h1>Đăng ký</h1>
+            <p class="subtitle">Tạo tài khoản để trải nghiệm Secure Login Lab.</p>
 
-        <form action="{{ url_for('register') }}" method="post">
-            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-            <div class="field">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" value="{{ username }}" autocomplete="username" required>
-            </div>
-            <div class="field">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" autocomplete="new-password" required>
-            </div>
-            <div class="field">
-                <label for="confirm_password">Confirm password</label>
-                <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
-            </div>
-            <button type="submit">Register</button>
-        </form>
-        <p class="form-link"><a href="{{ url_for('login') }}">Quay về Login</a></p>
-    </main>
+            {% if message %}
+                <p class="message" role="alert"><strong>Không thể đăng ký.</strong> {{ message }}</p>
+            {% endif %}
+
+            <form action="{{ url_for('register') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" value="{{ username }}" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="new-password" required>
+                </div>
+                <div class="field">
+                    <label for="confirm_password">Confirm password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
+                </div>
+                <button type="submit">Register <span aria-hidden="true">→</span></button>
+            </form>
+            <p class="form-link">Đã có tài khoản? <a href="{{ url_for('login') }}">Đăng nhập</a></p>
+        </main>
+
+        <footer class="page-footer"><span class="status-dot" aria-hidden="true"></span>Môi trường thực hành cục bộ</footer>
+    </div>
 </body>
 </html>
