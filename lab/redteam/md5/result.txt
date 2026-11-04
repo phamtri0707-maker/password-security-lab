@@ -1,12 +1,12 @@
 ===== MD5 HASHING BENCHMARK =====
-MD5 average hashing time: 0.000409 ms
+MD5 average hashing time: 0.000424 ms
 
 ===== MD5 CRACK TEST =====
 Password files required, but none specified
 
-real	0m0.008s
-user	0m0.007s
-sys	0m0.001s
+real	0m0.045s
+user	0m0.008s
+sys	0m0.019s
 
 ===== MD5 CRACK TEST =====
 Using default input encoding: UTF-8
@@ -14,10 +14,10 @@ Loaded 1 password hash (Raw-MD5 [MD5 256/256 AVX2 8x3])
 Warning: no OpenMP support for this hash type, consider --fork=2
 Press Ctrl-C to abort, or send SIGUSR1 to john process for status
 student123       (?)     
-1g 0:00:00:00 DONE (2026-11-03 13:39) 33.33g/s 3333p/s 3333c/s 3333C/s password..student123
+1g 0:00:00:00 DONE (2026-11-04 07:21) 33.33g/s 3333p/s 3333c/s 3333C/s password..student123
 Use the "--show --format=Raw-MD5" options to display all of the cracked passwords reliably
 Session completed. 
 
-real	0m0.091s
-user	0m0.015s
-sys	0m0.050s
+real	0m1.060s
+user	0m0.037s
+sys	0m0.758s

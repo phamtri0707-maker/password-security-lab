@@ -32,6 +32,6 @@ rm -f lab/redteam/bcrypt/test.pot
 
 time john \
   --format=bcrypt \
-  --wordlist=lab/redteam/wordlist.txt \
+  --wordlist=lab/redteam/wordlists/wordlist-100.txt \
   --pot=lab/redteam/bcrypt/test.pot \
   lab/redteam/bcrypt/hash.txt

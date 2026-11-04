@@ -43,7 +43,7 @@ start = time.perf_counter()
 attempts = 0
 found = False
 
-with open("lab/redteam/wordlist.txt", encoding="utf-8") as f:
+with open("lab/redteam/wordlists/wordlist-100.txt", encoding="utf-8") as f:
     for line in f:
         candidate = line.rstrip("\r\n")
         attempts += 1

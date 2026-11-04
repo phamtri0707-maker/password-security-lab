@@ -35,7 +35,7 @@ rm -f lab/redteam/md5/test.pot
 
 time john \
   --format=Raw-MD5 \
-  --wordlist=lab/redteam/wordlist.txt \
+  --wordlist=lab/redteam/wordlists/wordlist-100.txt \
   --pot=lab/redteam/md5/test.pot \
   lab/redteam/md5/hash.txt 
 exit
