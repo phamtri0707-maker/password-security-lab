@@ -1,0 +1,18 @@
+===== BCRYPT HASHING BENCHMARK =====
+bcrypt cost factor: 12
+bcrypt average hashing time: 237.211 ms
+
+===== BCRYPT CRACK TEST =====
+Using default input encoding: UTF-8
+Loaded 1 password hash (bcrypt [Blowfish 32/64 X3])
+Cost 1 (iteration count) is 4096 for all loaded hashes
+Will run 2 OpenMP threads
+Press Ctrl-C to abort, or send SIGUSR1 to john process for status
+student123       (?)     
+1g 0:00:00:10 DONE (2026-11-04 04:45) 0.09276g/s 9.276p/s 9.276c/s 9.276C/s chelsea..student123
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed. 
+
+real	0m10.999s
+user	0m9.184s
+sys	0m4.687s

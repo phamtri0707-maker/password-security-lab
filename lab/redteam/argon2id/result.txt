@@ -1,0 +1,11 @@
+===== ARGON2ID HASHING BENCHMARK =====
+Memory cost: 65536 KiB
+Time cost: 3
+Parallelism: 4
+Average hashing time: 90.102 ms
+
+===== ARGON2ID CRACK TEST =====
+Password found: student123
+Passwords tested: 100
+Crack successful: True
+Crack time: 12.685 s
