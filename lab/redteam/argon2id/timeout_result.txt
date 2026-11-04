@@ -1,0 +1,7 @@
+===== ARGON2ID TIMEOUT TEST =====
+Time limit: 5.0 seconds
+Wordlist size: 100
+Passwords tested: 53
+Elapsed time: 5.026 s
+Crack successful: False
+Password not found within lab window
