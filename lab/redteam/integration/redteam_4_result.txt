@@ -1,0 +1,28 @@
+=== RED TEAM: OFFLINE ATTACK ===
+Hash targets: 4
+Wordlist size: 104
+Pepper known: NO
+
+User: lab01
+  Found: False
+  Attempts: 104
+  Time: 19.013 s
+
+User: lab02
+  Found: False
+  Attempts: 104
+  Time: 18.830 s
+
+User: lab03
+  Found: False
+  Attempts: 104
+  Time: 24.871 s
+
+User: lab04
+  Found: False
+  Attempts: 104
+  Time: 20.859 s
+
+=== SUMMARY ===
+Recovered: 0/4
+Total attempts: 416

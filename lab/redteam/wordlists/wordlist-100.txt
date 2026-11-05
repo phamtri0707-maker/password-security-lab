@@ -98,3 +98,7 @@ secret
 asdfgh
 sparky
 student123
+BlueLab#A2026
+BlueLab#B2026
+BlueLab#C2026
+BlueLab#D2026
