@@ -1,0 +1,19 @@
+Password selected: 1026
+
+=== MD5 WITHOUT SALT ===
+Hash: 24146db4eb48c718b84cae0a0799dcfc
+Found: 1026
+Success: True
+
+=== MD5 WITH SALT ===
+Salt A: lab_salt_A:
+Hash A: 5624fe721d89b51660f2a3f30660915d
+Salt B: lab_salt_B:
+Hash B: 419fcc97b371a8a79cfe2a6e1867ee7f
+Hashes different: True
+Old rainbow table found: None
+Old table success: False
+
+=== KNOWN SALT + WORDLIST ===
+Recovered: 1026
+Success: True

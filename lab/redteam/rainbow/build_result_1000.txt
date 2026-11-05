@@ -1,0 +1,8 @@
+=== BUILD RESULTS ===
+Wordlist: 1000
+Rainbow chains: 100
+Chain length: 12
+Rainbow build time: 0.000865 s
+Direct build time: 0.001001 s
+Rainbow size: 1576 bytes
+Direct size: 41367 bytes
