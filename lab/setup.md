@@ -1,6 +1,6 @@
-# Red Team — Giai đoạn 1: dataset và hash
+# Red Team — Dataset, hash và benchmark CPU
 
-Nhóm 7, chủ đề **Hash & bảo mật mật khẩu + Crack Demo**. Giai đoạn này chuẩn bị dữ liệu tổng hợp và tạo **9 hash: 3 mật khẩu × 3 thuật toán**. Chỉ dùng dữ liệu do nhóm tạo, phục vụ lab được phép.
+Nhóm 7, chủ đề **Hash & bảo mật mật khẩu + Crack Demo**. Mục 1–6 hướng dẫn chuẩn bị dữ liệu tổng hợp và tạo **9 hash: 3 mật khẩu × 3 thuật toán**. Mục 7 hướng dẫn benchmark CPU độc lập. Chỉ dùng dữ liệu do nhóm tạo, phục vụ lab được phép.
 
 ## 1. Vị trí các file
 
@@ -16,8 +16,12 @@ Nhóm 7, chủ đề **Hash & bảo mật mật khẩu + Crack Demo**. Giai đo�
 | `data/hashes/bcrypt.txt` | 3 hash bcrypt dạng Modular Crypt, bắt đầu bằng `$2b$10$`. |
 | `data/hashes/argon2id.txt` | 3 hash Argon2id dạng PHC, bắt đầu bằng `$argon2id$v=19$`. |
 | `tests/test_redteam_dataset.py` | Kiểm tra dataset và 9 hash của lab. |
+| `scripts/Benchmark_hash.py` | Đo thời gian hash MD5, bcrypt, Argon2id bằng vòng lặp đơn giản. |
+| `scripts/plot_benchmark.py` | Đọc CSV và vẽ biểu đồ cost/configuration vs time. |
+| `lab/results/benchmark_summary.csv` | 7 dòng kết quả benchmark tổng hợp. |
+| `lab/results/cost_trends.png` | Biểu đồ cost/configuration vs time. |
 
-Quy ước chung: `scripts/` chứa chương trình; `data/` chứa wordlist, mục tiêu và hash; `lab/` chứa hướng dẫn, cấu hình và kết quả thực nghiệm. Những thí nghiệm benchmark, Hashcat/John the Ripper, rainbow table và timing về sau sẽ đặt trong `lab/` khi triển khai. `src/` tiếp tục chứa Blue Team.
+Quy ước chung: `scripts/` chứa chương trình; `data/` chứa wordlist, mục tiêu và hash; `lab/` chứa hướng dẫn, cấu hình và kết quả thực nghiệm. Giữ benchmark tại `scripts/Benchmark_hash.py` theo file đã có; kết quả nằm trong `lab/results/`. Các thí nghiệm Hashcat/John the Ripper, rainbow table và timing dùng `lab/`. `src/` tiếp tục chứa Blue Team.
 
 Các script Red Team hoạt động độc lập: không dùng pepper, cấu hình Argon2 của Blue Team hoặc `users.db`. Không cần khởi động Flask hay tạo database.
 
@@ -44,7 +48,7 @@ Nếu `python` không được nhận diện hoặc mở Microsoft Store do alia
 
 Sau đó tiếp tục từ lệnh cài thư viện. Thành viên khác thay đường dẫn này bằng Python trên máy mình. Trong VS Code có thể chọn **Python: Select Interpreter** rồi chọn `.venv\Scripts\python.exe`.
 
-File dependency riêng ghim `bcrypt==5.0.0` và `argon2-cffi==25.1.0`; `requirements.txt` của Blue Team giữ nguyên. Lệnh test trên chỉ chạy bài kiểm tra Red Team; muốn chạy toàn bộ test Blue Team thì cần cài thêm dependency từ `requirements.txt` theo README.
+File dependency riêng ghim `bcrypt==5.0.0`, `argon2-cffi==25.1.0` và `matplotlib==3.11.2` để tạo biểu đồ benchmark; `requirements.txt` của Blue Team giữ nguyên. Lệnh test trên chỉ chạy bài kiểm tra dataset Red Team; muốn chạy toàn bộ test Blue Team thì cần cài thêm dependency từ `requirements.txt` theo README.
 
 ## 3. Dataset và cách đối chiếu mục tiêu
 
@@ -103,4 +107,44 @@ Các file đầu vào cần mang sang Kali:
 
 Có thể giữ `targets.txt` và `targets_metadata.csv` riêng làm đáp án để đánh giá kết quả. Các file hash dùng định dạng gốc của từng thuật toán. Định dạng `$argon2id$` được hỗ trợ trong [mã nguồn John the Ripper Jumbo](https://github.com/openwall/john/blob/bleeding-jumbo/src/argon2_fmt_plug.c); cần kiểm tra khả năng hỗ trợ của bản công cụ trên Kali khi làm giai đoạn tiếp theo, đặc biệt nếu dùng Hashcat. Giai đoạn này chưa cài hoặc chạy các công cụ đó.
 
-Giai đoạn 1 dừng sau tạo dữ liệu, sinh hash và kiểm thử. Chưa chạy crack wordlist/rules/mask, benchmark CPU/GPU, rainbow table, timing demo, dashboard hay báo cáo kết quả thực nghiệm.
+Phần tạo dataset dừng sau sinh hash và kiểm thử. Benchmark CPU được triển khai riêng ở mục 7; các lệnh benchmark không chạy crack, tạo rainbow table, timing demo hoặc sửa dữ liệu Hashcat đã có.
+
+## 7. Benchmark CPU: hashing time và cost tuning
+
+Bản này giữ cấu trúc code gốc để dễ đọc và giải thích: import thư viện → mật khẩu demo → MD5 → bcrypt → Argon2id → in kết quả → lưu CSV. Script chính không có class hay hàm đo trừu tượng; biểu đồ được vẽ bằng một script riêng.
+
+### Cách đo
+
+1. Mật khẩu giả là `hello123`, chuyển sang bytes một lần để cả ba thuật toán dùng cùng đầu vào.
+2. MD5 giữ nguyên **5 đợt × 10.000 lần băm**. Mỗi đợt tính `(end - start) * 1000 / 10000` để có ms/hash, rồi lấy trung vị của 5 giá trị. Vẫn dùng `digest()` như code gốc.
+3. bcrypt giữ vòng lặp `for cost in [10, 11, 12]`. Mỗi cost đo 5 lần và lấy trung vị.
+4. Argon2id giữ vòng lặp qua ba cặp `(32768, 3), (65536, 3), (65536, 4)`. Bộ nhớ trong code tính bằng KiB: 32768 KiB = 32 MiB; 65536 KiB = 64 MiB. Giữ `parallelism=1`.
+5. Tất cả dùng `time.perf_counter()` và `statistics.median()`, giữ thứ tự đo của code gốc.
+
+**Hai bổ sung cho phép đo:** gọi warm-up một lần trước khi đo mỗi cấu hình; đưa `bcrypt.gensalt()` vào giữa start/end để tính cả sinh salt như `ph.hash()` của Argon2id. Salt vẫn được thư viện sinh ngẫu nhiên mỗi lần, không cố định salt.
+
+Thời gian bao gồm lời gọi Python và API thư viện, không riêng lõi thuật toán. MD5 trả digest bytes; bcrypt/Argon2id trả định dạng hash của thư viện. Kết quả không phải phép so sánh ở cùng độ an toàn hoặc tốc độ crack Hashcat/GPU. MD5 không có cost tuning và không phù hợp để lưu mật khẩu.
+
+### Chạy trong VS Code
+
+Mở terminal PowerShell tại thư mục gốc:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r scripts/requirements-redteam.txt
+.\.venv\Scripts\python.exe scripts/Benchmark_hash.py
+.\.venv\Scripts\python.exe scripts/plot_benchmark.py
+```
+
+Chạy lần lượt: benchmark tạo CSV; script vẽ đọc CSV đó và tạo ảnh. Không cần khởi động Flask, chạy lại dataset hoặc mở database.
+
+Muốn chỉnh cost, sửa trực tiếp danh sách cost bcrypt hoặc `config` Argon2id trong script chính. Khi so sánh, nên cắm nguồn, giữ cùng chế độ nguồn và đóng tác vụ nặng. Thời gian có thể thay đổi theo CPU, nhiệt độ và tải nền; 5 lần đo phục vụ minh họa trong bài học.
+
+### File đầu ra
+
+- `lab/results/benchmark_summary.csv`: 7 dòng kết quả, gồm 1 MD5, 3 bcrypt, 3 Argon2id. Các cột ghi thuật toán, cost bcrypt, bộ nhớ MiB, time cost, parallelism, trung vị ms/hash, đơn vị, 5 lần đo và số hash trong mỗi lần đo. Ô tham số không áp dụng được để trống.
+- `lab/results/cost_trends.png`: hai ô đơn giản. Ô bcrypt dùng cost 10/11/12; ô Argon2id ghi từng cấu hình bộ nhớ/t. Không dùng chung trục cost vì khác đơn vị. MD5 chỉ có trong CSV do không có tham số cost.
+- `scripts/plot_benchmark.py`: dùng `csv.DictReader` đọc các cột CSV, thêm vào list, rồi vẽ bằng matplotlib.
+
+**Chạy lại sẽ ghi đè hai file CSV/PNG trên.** Các thư mục benchmark timestamp cũ được giữ nguyên; script không đọc hay sửa chúng. Không tạo thêm JSON, file mẫu đo hoặc thư mục timestamp.
+
+Bộ test của kiến trúc benchmark trước đã được bỏ vì các class/hàm mà nó kiểm tra không còn dùng. Bản đơn giản được chạy đo thực tế, kiểm tra 7 dòng CSV, đơn vị/số lần đo, cách tính trung vị và ảnh đầu ra.
