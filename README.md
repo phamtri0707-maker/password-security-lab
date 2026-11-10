@@ -1,54 +1,70 @@
-# Password Security Lab — Blue Team
+# Password Security Lab
 
-Ứng dụng đăng ký/đăng nhập local bằng Flask, SQLite và Argon2id. Giao diện dùng HTML/CSS thuần; Flask development server phục vụ qua HTTPS tại **https://127.0.0.1:5000/**.
+Bài tập lớn Cơ sở An toàn thông tin, nhóm 7 — **Hash & Bảo mật mật khẩu + Crack Demo**.
+Project gồm ứng dụng đăng ký/đăng nhập local (Blue Team) và thí nghiệm crack hash tổng hợp (Red Team).
 
-Xem [hướng dẫn HTTPS/TLS local](docs/https-local.md) để tạo certificate và private key ngoài repository, chạy app, kiểm tra trình duyệt và hiểu vai trò của TLS so với Argon2id.
+## Cấu trúc project
 
-## Luồng hoạt động
+| Vị trí | Nội dung |
+| --- | --- |
+| `src/` | Flask, giao diện HTML/CSS, khởi tạo SQLite và cấu hình Argon2id Blue Team. |
+| `scripts/create_demo_user.py`, `scripts/tune_argon2.py` | Tạo tài khoản demo và thử cost hash/verify của Blue Team. |
+| `scripts/generate_dataset.py`, `scripts/generate_hashes.py` | Sinh dữ liệu tổng hợp và 9 hash Red Team. |
+| `scripts/Benchmark_hash.py`, `scripts/plot_benchmark.py` | Đo hashing time và vẽ biểu đồ từ CSV. |
+| `data/` | `wordlist.txt`, `targets.txt`, `targets_metadata.csv` và `hashes/`. |
+| `lab/setup.md` | Hướng dẫn chi tiết Red Team: cài đặt, Wordlist, Rules, Mask, benchmark. |
+| `lab/evidence/`, `lab/results/` | 8 ảnh Hashcat; CSV và biểu đồ benchmark. |
+| `docs/https-local.md`, `tests/` | Hướng dẫn TLS và kiểm thử. |
 
-1. `src/init_db.py` tạo `users.db` và bảng `users` nếu chưa có.
-2. `register.html` gửi username, password và confirm password tới `/register`. App kiểm tra dữ liệu, băm `password + pepper` bằng Argon2id và chỉ lưu username cùng hash. Đăng ký xong quay về login.
-3. `login.html` gửi username/password bằng POST. App tìm username bằng truy vấn SQL có tham số và kiểm tra mật khẩu bằng `verify()`.
-4. Khi đúng, app xóa session cũ, lưu `user_id` và `username`, rồi chuyển tới `/home`.
-5. `/home` yêu cầu đã đăng nhập. Nút Logout gửi POST, xóa session và đưa người dùng về `/`.
+## Cài đặt Python
 
-App đọc `PASSWORD_PEPPER` từ môi trường khi khởi động; register và login cùng dùng giá trị này. Salt được thư viện tự sinh ngẫu nhiên cho mỗi hash. Username được bỏ khoảng trắng hai đầu; password giữ nguyên, nhưng password chỉ gồm khoảng trắng bị từ chối. Ràng buộc `UNIQUE` chặn username trùng và không ghi đè tài khoản cũ.
-
-`scripts/create_demo_user.py` vẫn là cách tạo riêng tài khoản `demo` từ terminal nếu cần; không bắt buộc chạy script để dùng Register trên web.
-
-Session là trạng thái giúp app nhận biết người dùng giữa các lần truy cập. Flask lưu nó trong cookie có chữ ký. Chữ ký ngăn sửa dữ liệu, không che giấu nội dung cookie, nên app không đưa mật khẩu hoặc pepper vào session.
-
-Username không tồn tại và password sai đều nhận cùng thông báo: **Username hoặc password không đúng.** Với username không tồn tại, app vẫn verify một hash tạm để giảm khác biệt thời gian xử lý.
-
-Form có CSRF token: một mã ngẫu nhiên trong phiên và trong ô ẩn của form. App kiểm tra mã này trước khi nhận POST để chống yêu cầu giả mạo từ form khác. Cookie có `Secure`, `HttpOnly`, `SameSite=Lax`; các trang không được lưu cache.
-
-## Chạy từ đầu trên PowerShell
-
-Các lệnh dưới dùng đường dẫn Python hiện có trên máy ADMIN. Thành viên khác thay `$pythonExe` bằng đường dẫn Python trên máy mình.
+Môi trường đã dùng: Windows 11, Python **3.14.7**. Dependency biểu đồ yêu cầu Python >=3.11.
+Tại thư mục gốc, tạo `.venv` một lần nếu chưa có, rồi cài dependency:
 
 ```powershell
 cd C:\password-security-lab
-$pythonExe = "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\python.exe"
+py -3.14 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt -r scripts/requirements-redteam.txt
+```
 
-& $pythonExe -m pip install -r requirements.txt
+`requirements.txt` chứa Flask/argon2-cffi; `scripts/requirements-redteam.txt` chứa bcrypt/argon2-cffi/matplotlib.
+Nếu không dùng được `py`, dùng đường dẫn Python thật theo [hướng dẫn Windows](lab/setup.md#2-chuẩn-bị-python-trên-windows).
+Muốn gõ ngắn, kích hoạt `.\.venv\Scripts\Activate.ps1` rồi dùng `python` thay đường dẫn dài.
+Hashcat/PoCL cài riêng trên Kali; không sao chép `.venv` Windows sang VM.
+
+## Blue Team
+
+### Chức năng đã triển khai
+
+- Register kiểm tra dữ liệu, băm `password + pepper` bằng Argon2id; SQLite lưu `id, username, password_hash`.
+- Login tìm username bằng SQL có tham số, dùng `verify()` để kiểm tra mật khẩu.
+- Đăng nhập thành công tạo session; `/home` yêu cầu đăng nhập; Logout xóa session.
+- Form kiểm tra mã CSRF khi nhận POST; cookie có `Secure`, `HttpOnly`, `SameSite=Lax`.
+- App dùng HTTPS local; username không tồn tại và password sai nhận cùng thông báo.
+
+Salt được thư viện sinh ngẫu nhiên và nằm trong hash; pepper lấy từ môi trường, không lưu trong database.
+Cấu hình ở `src/argon2_config.json`: **64 MiB, t=3, p=4**; t là số lượt xử lý, p là mức song song. Cost làm tăng chi phí mỗi lần băm.
+
+### Chạy ứng dụng
+
+Sau khi cài dependency, khởi tạo bảng nếu chưa có:
+
+```powershell
+$pythonExe = (Resolve-Path ".\.venv\Scripts\python.exe").Path
 & $pythonExe src\init_db.py
 ```
 
-Với database mới **chưa có tài khoản nào**, sinh pepper một lần:
+**Chỉ khi thiết lập mới, chưa có tài khoản**, tạo pepper và khóa session một lần:
 
 ```powershell
 $env:PASSWORD_PEPPER = & $pythonExe -c "import secrets; print(secrets.token_hex(32))"
-```
-
-Nếu đã có tài khoản, cần cấp lại đúng pepper đã dùng để tạo tài khoản đó; không sinh pepper mới cho hash cũ. Pepper không nằm trong database nên không thể khôi phục từ database. App không tự đọc file `.env`.
-
-Giữ nguyên `FLASK_SECRET_KEY` hiện tại. Chỉ tạo khóa ký session nếu đây là lần thiết lập đầu tiên:
-
-```powershell
 $env:FLASK_SECRET_KEY = & $pythonExe -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-Tạo certificate/private key một lần theo [bước 2 của hướng dẫn HTTPS](docs/https-local.md#2-tạo-certificate-và-private-key-một-lần). Hai file nằm trong thư mục tài khoản Windows, ngoài repository. Sau đó, trong cùng cửa sổ PowerShell đã có pepper và khóa session:
+Nếu đã có tài khoản, cấp lại đúng pepper và khóa session cũ từ nơi lưu riêng; không sinh pepper mới.
+App không tự đọc `.env`; các biến trên chỉ tồn tại trong terminal hiện tại. Đổi pepper làm mật khẩu cũ không khớp.
+
+Tạo certificate/private key ngoài repository theo [hướng dẫn HTTPS](docs/https-local.md#2-tạo-certificate-và-private-key-một-lần), rồi chạy trong terminal đã có hai biến trên:
 
 ```powershell
 $tlsDir = Join-Path $env:LOCALAPPDATA "SecureLoginLab\tls"
@@ -57,79 +73,83 @@ $env:TLS_KEY_FILE = Join-Path $tlsDir "local.key"
 & $pythonExe src\app.py
 ```
 
-Mở **https://127.0.0.1:5000/**. Browser sẽ cảnh báo vì certificate tự ký chưa được tin cậy; chỉ tiếp tục với certificate do chính bạn tạo cho lab này. Bấm **Đăng ký tài khoản**, chọn username giả như `student_web` rồi nhập password và confirm password giống nhau. Đăng ký thành công sẽ về login. Đăng nhập bằng tài khoản vừa tạo, thử Logout rồi truy cập lại `/home`; app phải đưa về login. Nếu đang đăng nhập, bấm Logout trước khi thử tạo tài khoản khác. Nhấn `Ctrl+C` trong terminal để dừng web; sau khi sửa code cần chạy lại app để nhận thay đổi.
+Mở **https://127.0.0.1:5000/**, thử **Đăng ký → Đăng nhập → Home → Logout**; `Ctrl+C` để dừng.
+Certificate tự ký gây cảnh báo trình duyệt: chỉ tiếp tục với certificate lab do mình tạo.
+Dùng `src/app.py` để áp dụng TLS; `flask run` thông thường không chạy phần cấu hình này.
+Script `create_demo_user.py` là cách tạo tài khoản `demo` từ terminal, không bắt buộc khi dùng Register.
+Muốn thử cost Blue Team: dừng web, giữ `PASSWORD_PEPPER` và chạy `& $pythonExe scripts\tune_argon2.py`.
 
-Chạy bằng `python src\app.py` như trên để áp dụng cấu hình TLS; lệnh `flask run` thông thường không chạy khối `__main__` này. Cổng 5000 phục vụ HTTPS, không đồng thời phục vụ HTTP hay chuyển hướng HTTP sang HTTPS.
+## Red Team
 
-Server xử lý TLS handshake trong từng worker, để một kết nối mở sẵn chưa gửi handshake không làm các trang khác tải mãi. Kết nối chờ handshake/request có timeout 10 giây. Sau khi cập nhật code, dừng server cũ bằng `Ctrl+C` rồi chạy lại lệnh trên.
+### Dataset và hash
 
-Các biến môi trường trong các lệnh trên chỉ tồn tại trong cửa sổ PowerShell hiện tại. Giữ pepper và khóa session ở nơi riêng an toàn để cấp lại khi cần; không đưa giá trị thật hoặc private key vào code hay Git. Đổi khóa ký session sẽ làm các session cũ hết hiệu lực; đổi pepper làm mật khẩu đã băm bằng pepper cũ không còn khớp. `TLS_CERT_FILE` và `TLS_KEY_FILE` chỉ chứa đường dẫn tới hai file TLS, không chứa nội dung certificate/private key.
+Dữ liệu có **1.000 mật khẩu không trùng**, seed `7007`; đây là dữ liệu học tập, không lấy từ dữ liệu rò rỉ.
+Ba mục tiêu ở `targets.txt`: hai mục tiêu nằm trong wordlist (dòng **25, 650**), một mục tiêu ở ngoài.
+Mỗi mục tiêu có MD5, bcrypt và Argon2id: **9 hash**; dòng n của mỗi file hash ứng với dòng n trong targets.
+MD5 không salt; bcrypt cost **10**; Argon2id **64 MiB, t=3, p=1**. Hai loại sau có salt ngẫu nhiên, không dùng pepper.
 
-## Demo Register → xem hash → Login
-
-1. Trên trình duyệt, đăng ký một tài khoản mới. Đăng ký xong chưa tự đăng nhập.
-2. Để web tiếp tục chạy, mở PowerShell thứ hai và xem database bằng công cụ có sẵn trong Python 3.14:
-
-```powershell
-cd C:\password-security-lab
-$pythonExe = "C:\Users\ADMIN\AppData\Local\Python\pythoncore-3.14-64\python.exe"
-& $pythonExe -m sqlite3 users.db "PRAGMA table_info(users);"
-& $pythonExe -m sqlite3 users.db "SELECT id, username, password_hash FROM users;"
-```
-
-`PRAGMA table_info(users)` hiển thị cấu trúc bảng: chỉ có `id`, `username`, `password_hash`; không có cột password hoặc confirm password. Lệnh `SELECT` đọc các bản ghi đã lưu. Cột `password_hash` có chuỗi bắt đầu bằng `$argon2id$`, thay vì mật khẩu đã nhập.
-
-Trong hash, `m=65536,t=3,p=4` là các tham số cost; hai phần tiếp theo chứa salt và kết quả băm. Salt nằm trong hash, còn pepper không được lưu trong database.
-
-3. Quay lại trình duyệt và đăng nhập bằng tài khoản vừa đăng ký. Thử đăng ký lại cùng username hoặc nhập confirm password khác để xem lỗi; các trường hợp này không thêm hay sửa tài khoản.
-
-## Cost tuning Argon2id
-
-App và script tạo tài khoản đều đọc `src/argon2_config.json`:
-
-```json
-{
-    "memory_cost": 65536,
-    "time_cost": 3,
-    "parallelism": 4
-}
-```
-
-- `memory_cost`: bộ nhớ cấu hình cho một lần băm, đơn vị KiB. `65536 KiB = 64 MiB`; đây không phải số RAM toàn tiến trình đo được.
-- `time_cost`: số lượt xử lý bộ nhớ; tăng thường làm phép băm lâu hơn.
-- `parallelism`: mức xử lý song song. Giá trị 4 không nhân bộ nhớ cấu hình thành 256 MiB và không có nghĩa thời gian sẽ tăng 4 lần.
-
-Salt vẫn do thư viện tự sinh ngẫu nhiên, nằm trong chuỗi hash cùng các tham số. Pepper chỉ được lấy từ biến môi trường.
-
-Khi web đã dừng, chạy script đo nhỏ trong terminal đã có `PASSWORD_PEPPER`:
+**Dùng bộ `data/` hiện có để đối chiếu evidence.** Chỉ khi chủ động tạo lại, chạy:
 
 ```powershell
-& $pythonExe scripts\tune_argon2.py
+.\.venv\Scripts\python.exe scripts/generate_dataset.py
+.\.venv\Scripts\python.exe scripts/generate_hashes.py
 ```
 
-Script thử bốn cấu hình, chạy khởi động một lần rồi đo hash/verify ba lần và lấy trung bình. Script chỉ tạo mật khẩu đo tạm trong RAM, không đọc hoặc ghi `users.db`. Dấu `*` đánh dấu cấu hình app đang sử dụng; script không tự sửa cấu hình.
+Hai script ghi đè dữ liệu/hash. Wordlist và targets tái lập được; bcrypt/Argon2id đổi salt/hash.
+Nếu sinh lại, phải chuyển lại hash sang Kali và ghi nhận evidence tương ứng, không dùng ảnh của bộ cũ.
 
-Một lượt đo tham khảo, chạy riêng sau khi test đã kết thúc trên Python 3.14.7, Windows, CPU Intel64 Family 6 Model 170 Stepping 4:
+### Hashcat và benchmark
 
-| memory_cost (KiB) | time_cost | parallelism | Hash (ms) | Verify (ms) |
-| ---: | ---: | ---: | ---: | ---: |
-| 19456 | 2 | 1 | 23.6 | 23.3 |
-| 65536 | 2 | 1 | 85.4 | 89.3 |
-| 65536 | 3 | 1 | 124.3 | 121.8 |
-| **65536** | **3** | **4** | **49.0** | **50.2** |
+Hashcat đã chạy trên Kali VM bằng CPU/PoCL, phiên bản **7.1.2**.
+Wordlist thử các từ sẵn có; Rules biến đổi từ trong wordlist; Mask sinh ứng viên theo mẫu ký tự.
+Xem [lab/setup.md](lab/setup.md) để cài công cụ và chạy lại Wordlist, Rules, Mask với đúng mode và potfile.
 
-Chọn 64 MiB, 3 lượt, song song 4 cho app local vì trên máy đo phép kiểm tra khoảng 50 ms, còn đủ nhanh cho đăng nhập thủ công. Đây cũng là cấu hình tương ứng với profile `RFC_9106_LOW_MEMORY` của argon2-cffi. Kết quả thay đổi theo máy và tải hệ thống; số đo này không phải cam kết cho máy khác hoặc nhiều lượt đăng nhập đồng thời.
+Benchmark Python chạy trên Windows, độc lập với Flask và dữ liệu crack:
 
-Sửa cấu hình tác động tới hash được tạo mới. Khi kiểm tra hash cũ, `verify()` đọc tham số nằm trong hash đó; app chưa tự cập nhật hash cũ.
+```powershell
+.\.venv\Scripts\python.exe scripts/Benchmark_hash.py
+.\.venv\Scripts\python.exe scripts/plot_benchmark.py
+```
 
-Tham khảo: [argon2-cffi: chọn tham số](https://argon2-cffi.readthedocs.io/en/stable/parameters.html), [OWASP: lưu mật khẩu](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), [Flask session](https://flask.palletsprojects.com/en/stable/quickstart/#sessions).
+Lệnh đầu ghi đè [benchmark_summary.csv](lab/results/benchmark_summary.csv); lệnh sau đọc CSV, ghi đè [cost_trends.png](lab/results/cost_trends.png).
+Phải chạy cả hai để ảnh được cập nhật. Không tạo thư mục timestamp.
+MD5 đo 5 đợt × 10.000 hash, lấy trung vị thời gian trung bình mỗi đợt; bcrypt/Argon2id đo 5 lần/cấu hình.
+Có warm-up; thời gian sinh salt được tính cho cả bcrypt và Argon2id. Đơn vị **ms/hash**.
+Các cấu hình là bcrypt cost 10/11/12 và Argon2id 32 MiB/t=3, 64 MiB/t=3, 64 MiB/t=4, đều p=1.
+
+## Kết quả chính
+
+| Thí nghiệm | Kết quả đã ghi nhận |
+| --- | --- |
+| Wordlist, cả ba thuật toán | **2/3 mục tiêu**: tìm đủ hai mật khẩu có trong wordlist; mật khẩu thứ ba ở ngoài tập ứng viên. |
+| Rules MD5, `u$!` (viết hoa + thêm `!`) | **0 hash tìm mới**; 2/3 total trong ảnh là kết quả potfile. |
+| Mask MD5, 7 chữ thường + 2 chữ số | **1/3 tìm mới**, là mục tiêu đầu đã được Wordlist tìm ra; không cộng thành 3 mật khẩu khác nhau. |
+| Benchmark CPU | CSV có 7 dòng cấu hình; biểu đồ tách bcrypt và Argon2id vì cost khác đơn vị. |
+
+Xem [8 ảnh evidence và giải thích](lab/setup.md#8-evidence-và-kết-luận-thực-tế).
+Ảnh Argon2id `05` ghi 2/3 tìm mới; ảnh `04` là lượt cũ có potfile, không ghép thành một phiên.
+`Recovered total` có thể gồm kết quả cũ; `new` là tìm mới. `Exhausted`/`Progress 100%` nghĩa là hết tập ứng viên, không phải tìm đủ mọi mật khẩu.
 
 ## Kiểm thử
 
+Sau khi cài cả hai file requirements, chạy tại thư mục gốc:
+
 ```powershell
-& $pythonExe -B -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
 ```
 
-Các test tự tạo database tạm, pepper và khóa session riêng, không dùng database thật. Phạm vi gồm đăng nhập đúng/sai, username không tồn tại, pepper thiếu/sai, cấu hình hash và salt, truy cập `/home`, logout, CSRF và việc không ghi đè tài khoản demo đã có.
+Test Blue Team dùng database/secret tạm để kiểm tra đăng ký, đăng nhập, session, CSRF và HTTPS.
+Test dataset kiểm tra wordlist, mục tiêu, 9 hash và salt; phần thử sinh lại dùng thư mục tạm.
+Test HTTPS cần OpenSSL; một số test được bỏ qua nếu thiếu công cụ. Không dùng database thật để test.
 
-Test Register kiểm tra tạo tài khoản, username trùng, xác nhận password sai, dữ liệu trống, salt ngẫu nhiên và đăng nhập bằng tài khoản vừa tạo. Test cũng kiểm tra schema và nội dung file database tạm: chỉ lưu hash, không lưu password rõ hay pepper.
+## Giới hạn và sử dụng có trách nhiệm
+
+- **Thí nghiệm minh họa:** MD5 và crack offline chỉ dùng mật khẩu/hash tổng hợp do nhóm tạo trong lab được phép.
+- **Chưa thực hiện trong Red Team:** Rainbow Table, Timing Attack Comparison, benchmark verification/GPU; không dùng John the Ripper trên nhánh này.
+- Không tìm được mật khẩu trong wordlist/mask không chứng minh mật khẩu hoặc thuật toán không thể bị crack.
+- Năm lần đo còn chịu ảnh hưởng của máy, tải nền và nhiệt độ; không so trực tiếp benchmark Python với Speed của Hashcat hoặc suy ra hiệu năng GPU.
+- Flask development server/certificate tự ký phục vụ local, không phải cấu hình production.
+- Không dùng mật khẩu thật, dữ liệu rò rỉ có thông tin cá nhân hoặc thử mật khẩu trên dịch vụ bên ngoài; không đưa database, pepper, khóa session hay private key vào Git.
+- Với demo 5–10 phút, dùng evidence đã hoàn thành; lượt Mask trong ảnh mất khoảng **5 giờ 10 phút**.
+
+Lịch sử triển khai theo Git: [CHANGELOG.md](CHANGELOG.md).

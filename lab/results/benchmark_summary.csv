@@ -1,0 +1,8 @@
+algorithm,bcrypt_cost,memory_mib,time_cost,parallelism,median_ms,unit,measurements,hashes_per_measurement
+MD5,,,,,0.0005125800031237304,ms/hash,5,10000
+bcrypt,10,,,,51.945799961686134,ms/hash,5,1
+bcrypt,11,,,,106.80389998015016,ms/hash,5,1
+bcrypt,12,,,,219.1976000322029,ms/hash,5,1
+Argon2id,,32,3,1,54.34979998972267,ms/hash,5,1
+Argon2id,,64,3,1,116.0190999507904,ms/hash,5,1
+Argon2id,,64,4,1,144.67389998026192,ms/hash,5,1
