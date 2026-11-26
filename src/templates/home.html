@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>Đã đăng nhập | Secure Login Lab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="brand">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4.5 6v5.5c0 4.3 3 7.7 7.5 9.5 4.5-1.8 7.5-5.2 7.5-9.5V6L12 3Z"/><path d="m8.5 12 2.3 2.3 4.7-4.7"/></svg>
+            </span>
+            <div>
+                <p class="brand-name">Secure Login Lab</p>
+                <p class="brand-caption">{% if request.is_secure %}Protected with HTTPS and Argon2id{% else %}Argon2id password hashing · HTTPS required{% endif %}</p>
+            </div>
+        </header>
+
+        <main class="card">
+            <p class="success-badge" role="status"><span aria-hidden="true">✓</span> Đã xác thực</p>
+            <h1>Đăng nhập thành công</h1>
+            <p class="subtitle welcome">Xin chào, <strong>{{ username }}</strong>.</p>
+
+            <div class="session-panel">
+                <p class="panel-label">Phiên đăng nhập</p>
+                <p>Phiên của bạn đang hoạt động. Đăng xuất khi kết thúc buổi thực hành.</p>
+            </div>
+
+            <form action="{{ url_for('logout') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                <button class="button-secondary" type="submit">Logout <span aria-hidden="true">→</span></button>
+            </form>
+        </main>
+
+        <footer class="page-footer"><span class="status-dot" aria-hidden="true"></span>Môi trường thực hành cục bộ</footer>
+    </div>
+</body>
+</html>
